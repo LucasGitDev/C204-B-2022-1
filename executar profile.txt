@@ -1,0 +1,5 @@
+g++ -g -pg -o file.exe file.cpp
+
+./main.out
+
+gprof executable.exe gmon.out &gt; analysis.txt
