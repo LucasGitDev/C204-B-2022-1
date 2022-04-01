@@ -2,36 +2,86 @@
 
 using namespace std;
 
+struct entrega
+{
+    int tempo;
+    int qtdPizzas;
+};
 
 int main() {
 
-    int Q; // Quantidade máxima de pizzas
-    int N; // Quantidade de pedidos
-    int D; // Tempo de duração da entrega do pedido N em minutos
-    int X; // Quantidade de pizzas no pedido N
-    int tempoTotal = 0; // Tempo total de entrega
-    int custotempo[100][100]; // Custo do tempo de entrega
+    int qtdMaxPizzas;
+    int qtdPedidos;
 
-    // Verificar quais pedidos são possíveis de entregar no maior tempo possível
-    // OBS: Não é necessário verificar se o pedido N é possível de entregar
+    int pd[100][100];
+    int caminho[100][100];
+    entrega v[100];
 
-    // Entrada
-    cin >> Q;
-    cin >> N;
 
-    for(int i = 0; i < N; i++) {
-        cin >> D >> X;
+    cin >> qtdMaxPizzas;
+    cin >> qtdPedidos;
+
+    for (int i = 0; i < qtdPedidos; i++) {
+        cin >> v[i].tempo >> v[i].qtdPizzas;
     }
 
+    // inicializacao:
+    // casos base
 
-    // Processamento
-    // Verificar possíveis conjuntos de entregas de pedidos que possam ser entregues no tempo máximo
-    // OBS: Não é necessário verificar se o pedido N é possível de entregar
+    for(int i = 0; i <= qtdMaxPizzas; i++)
+        pd[qtdPedidos][i] = 0;
 
+    for(int i = 0; i <= qtdPedidos; i++)
+        pd[i][0] = 0;
 
+    // programacao dinamica:
+    // caso geral
 
-    // Saída
-    cout << tempoTotal << endl;
+    for(int i = qtdPedidos - 1; i >= 0; i--)
+		for(int j = 1; j <= qtdMaxPizzas; j++)
+		{
+			int pega, npega; 
+			
+			npega = pd[i + 1][j];
+
+			if(j >= v[i].qtdPizzas) 
+				pega = pd[i + 1][j - v[i].qtdPizzas] + v[i].tempo;
+		
+			else
+				pega = 0; 
+
+			
+			
+			if(pega > npega) 
+			{
+				pd[i][j] = pega;
+				caminho[i][j] = 1;
+			}
+			
+			else 
+			{
+				pd[i][j] = npega;
+				caminho[i][j] = 0;
+			}
+		}
+
+    int i,j;
+	i = 0;
+	j = qtdMaxPizzas;
+    int tempoFinal = 0;
+	
+	while(i != qtdPedidos){ 
+		if(caminho[i][j] == 0) 
+			i++;
+		
+		else 
+		{
+			tempoFinal += v[i].tempo;
+			j-= v[i].qtdPizzas; 
+		}
+	}
+
+    cout << tempoFinal << " min." << endl;
 
     return 0;
 }
