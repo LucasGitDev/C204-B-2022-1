@@ -1,5 +1,5 @@
-#include<iostream>
-#include<list>
+#include <iostream>
+#include <list>
 #define INT_MAX 999
 
 using namespace std;
@@ -8,6 +8,12 @@ struct no
 {
     int v;    // destino da aresta
     int peso; // peso da aresta
+};
+
+struct return_dijkstra
+{
+    int distancia;
+    list<int> caminho;
 };
 
 void cria_aresta(list<no> adj[], int u, int v, int p, int orientado)
@@ -23,8 +29,8 @@ void cria_aresta(list<no> adj[], int u, int v, int p, int orientado)
     }
 }
 
-
-void dijkstra(list<no>adj[], int nVertices, int start, int end) {
+return_dijkstra dijkstra(list<no> adj[], int nVertices, int start, int end)
+{
     int distancia[nVertices];
     int parent[nVertices];
     bool intree[nVertices];
@@ -74,7 +80,7 @@ void dijkstra(list<no>adj[], int nVertices, int start, int end) {
             }
         }
     }
-    
+
     list<int> pilha;
 
     pilha.push_front(end);
@@ -84,18 +90,17 @@ void dijkstra(list<no>adj[], int nVertices, int start, int end) {
         pilha.push_front(pai);
     }
 
-    cout << "Menor caminho: ";
-
+    return_dijkstra retorno;
+    retorno.distancia = distancia[end];
+    int j = 0;
     for (list<int>::iterator p = pilha.begin(); p != pilha.end(); p++)
     {
-        cout << *p << " ";
+        retorno.caminho.push_back(*p);
+        j++;
     }
 
-    cout << endl;
-
-    cout << "Custo: " << distancia[end] << endl;
+    return retorno;
 }
-
 
 // int main()
 // {
@@ -119,7 +124,7 @@ void dijkstra(list<no>adj[], int nVertices, int start, int end) {
 //         cria_aresta(adj, u, v, p, orientado);
 //         cin >> u >> v >> p;
 //     }
-    
+
 //     //Mostrando a lista de adjacência
 //     dijkstra(adj, nVertices, inicial, end);
 
