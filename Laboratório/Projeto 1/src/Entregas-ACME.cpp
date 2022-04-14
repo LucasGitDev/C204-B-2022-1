@@ -34,10 +34,10 @@ struct compra
 struct entregador
 {
     int id;
-    int distanciaInicialAteMercado = 0;
-    int localAtual = -1;
-    int tempoTotal = 0;
-    int pesoTotal = 0;
+    int distanciaInicialAteMercado;
+    int localAtual;
+    int tempoTotal;
+    int pesoTotal;
     list<int> caminho;
 };
 
@@ -116,6 +116,9 @@ int main()
     {
         entregadores[i].id = i;
         entregadores[i].distanciaInicialAteMercado = doc["distInicialEntregador"][i];
+        entregadores[i].localAtual = -1;
+        entregadores[i].tempoTotal = 0;
+        entregadores[i].pesoTotal = 0;
     }
 
     // O algoritmo deve verificar quais entregas serão atendidas por cada entregador
