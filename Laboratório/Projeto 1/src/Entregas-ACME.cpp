@@ -1,8 +1,20 @@
 #include <iostream>
 #include <list>
 #include "Dijkstra.cpp"
+#include "json.hpp"
+#include <fstream>
 
 using namespace std;
+using json = nlohmann::json;
+
+// Carrega todos os dados do arquivo de entrada e seleciona apenas o primeiro elemento do vetor de retorno
+json load_json(int id)
+{
+    ifstream file("assets/tests.json");
+    json j;
+    file >> j;
+    return j["casos"][id];
+}
 
 void limpar_memoria(int nVertices, list<no> adj[])
 {
@@ -72,45 +84,38 @@ int main()
 
     int naoOrientado = 0;
 
-    cout << "Quantidade de locais: \t";
-    cin >> qtdLocais;
+    int id = 0;
 
-    cout << "Qual o numero referente ao local de origem: \t";
-    cin >> mercado;
+    cout << "Qual teste deseja executar? ";
+    cin >> id;
 
-    cout << "Entre com o grafo dos locais (-1 -1 -1 para sair):" << endl;
-    cin >> origem >> destino >> tempo;
-    while (origem != -1 && destino != -1 && tempo != -1)
-    {
-        cria_aresta(adj, origem, destino, tempo, naoOrientado);
-        cin >> origem >> destino >> tempo;
-    }
+    json doc = load_json(id);
 
-    cout << "Quantidade de entregas: \t";
-    cin >> qtdEntregas;
+    qtdLocais = doc["qtdLocais"];
+    qtdEntregas = doc["qtdEntregas"];
+    qtdEntregadores = doc["qtdEntregadores"];
+    pesoMaximoEntrega = doc["pesoMaximoEntrega"];
+    mercado = doc["mercado"];
 
-    cout << "Entre com as entregas: \n";
     for (int i = 0; i < qtdEntregas; i++)
     {
-        cout << "Entrega para local: \t";
-        cin >> entregas[i].local;
-        cout << "Peso: \t";
-        cin >> entregas[i].peso;
         entregas[i].id = i;
+        entregas[i].local = doc["entregas"][i]["local"];
+        entregas[i].peso = doc["entregas"][i]["peso"];
     }
 
-    cout << "Quantidade de entregadores: ";
-    cin >> qtdEntregadores;
+    for (int i = 0; i < doc["grafo"].size(); i++)
+    {
+        origem = doc["grafo"][i][0];
+        destino = doc["grafo"][i][1];
+        tempo = doc["grafo"][i][2];
+        cria_aresta(adj, origem, destino, tempo, naoOrientado);
+    }
 
-    cout << "Peso maximo por entregador: ";
-    cin >> pesoMaximoEntrega;
-
-    cout << "Entre com a distancia inicial do entregador até o mercado: \n";
     for (int i = 0; i < qtdEntregadores; i++)
     {
-        cout << "Entregador " << i + 1 << ": \t";
         entregadores[i].id = i;
-        cin >> entregadores[i].distanciaInicialAteMercado;
+        entregadores[i].distanciaInicialAteMercado = doc["distInicialEntregador"][i];
     }
 
     // O algoritmo deve verificar quais entregas serão atendidas por cada entregador
@@ -241,6 +246,8 @@ int main()
         cout << endl;
         cout << "################\n\n\n";
     }
+
+    limpar_memoria(qtdLocais, adj);
 
     return 0;
 }

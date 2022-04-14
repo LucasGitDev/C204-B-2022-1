@@ -4,7 +4,8 @@
       "qtdEntregas": 5,
       "qtdLocais": 6,
       "qtdEntregadores": 4,
-      "pontoP": 5,
+      "mercado": 5,
+      "pesoMaximoEntrega": 18,
       "entregas": [
         {
           "local": 1,
@@ -44,12 +45,7 @@
         [4, 6, 4],
         [5, 6, 8]
       ],
-      "distEntregadorPontoP": [
-        [1, 10],
-        [2, 9],
-        [3, 9],
-        [4, 3]
-      ]
+      "distInicialEntregador": [10, 9, 9, 3]
     },
     {}
   ]
