@@ -22,10 +22,10 @@ struct compra
 struct entregador
 {
     int id;
-    int distanciaInicialAteMercado = 0;
-    int localAtual = -1;
-    int tempoTotal = 0;
-    int pesoTotal = 0;
+    int distanciaInicialAteMercado;
+    int localAtual;
+    int tempoTotal;
+    int pesoTotal;
     list<int> caminho;
 };
 
@@ -60,12 +60,12 @@ int main()
     int qtdEntregas;              // quantidade de entregas
     int qtdEntregadores;          // quantidade de
     entregador entregadores[100]; // vetor de entregadores
-    int pesoMaximoEntrega;        // peso máximo de uma entrega
+    int pesoMaximoEntrega;        // peso maximo de uma entrega
     int mercado;                  // mercado de origem
     compra entregas[100];         // entregas
-    compra pack_entrega[10][10];  // pack_entrega[i][n] -> i-ésimo entregador, n-ésimo pack (quais packs vai pegar)
+    compra pack_entrega[10][10];  // pack_entrega[i][n] -> i-esimo entregador, n-esimo pack (quais packs vai pegar)
     int qtdPacksMontados = 0;
-    list<int> comprasJaProcessadas; // compras já processadas
+    list<int> comprasJaProcessadas; // compras ja processadas
 
     list<no> adj[20];
     int origem, destino, tempo;
@@ -105,15 +105,18 @@ int main()
     cout << "Peso maximo por entregador: ";
     cin >> pesoMaximoEntrega;
 
-    cout << "Entre com a distancia inicial do entregador até o mercado: \n";
+    cout << "Entre com a distancia inicial do entregador ate o mercado: \n";
     for (int i = 0; i < qtdEntregadores; i++)
     {
         cout << "Entregador " << i + 1 << ": \t";
         entregadores[i].id = i;
         cin >> entregadores[i].distanciaInicialAteMercado;
+        entregadores[i].localAtual = -1;
+        entregadores[i].tempoTotal = 0;
+        entregadores[i].pesoTotal = 0;
     }
 
-    // O algoritmo deve verificar quais entregas serão atendidas por cada entregador
+    // O algoritmo deve verificar quais entregas serao atendidas por cada entregador
     // e calcular o tempo total de cada entregador.
 
     // Ordenar as entregas por maior peso
@@ -144,7 +147,7 @@ int main()
         }
     }
 
-    // Verificar quais entregas serão atendidas por cada entregador levando em consideração o peso maximo
+    // Verificar quais entregas serao atendidas por cada entregador levando em consideraçao o peso maximo
     for (int i = 0; i < qtdEntregadores; i++)
     {
         if (comprasJaProcessadas.size() == qtdEntregas)
@@ -193,8 +196,10 @@ int main()
                 entregadores[i].tempoTotal += aux.distancia;
                 entregadores[i].localAtual = pack_entrega[i][j].local;
                 if (j != 0)
-                {
-                    entregadores[i].caminho.insert(entregadores[i].caminho.end(), next(aux.caminho.begin()), aux.caminho.end());
+                {   
+                    // remover o primeiro elemento de aux.caminho
+                    aux.caminho.erase(aux.caminho.begin());
+                    entregadores[i].caminho.insert(entregadores[i].caminho.end(), aux.caminho.begin(), aux.caminho.end());
                 }
                 else
                 {
