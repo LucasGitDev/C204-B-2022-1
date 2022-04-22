@@ -1,5 +1,7 @@
-g++ -g -pg -o file.exe file.cpp
-
-./main.out
-
-gprof executable.exe gmon.out &gt; analysis.txt
+g++ -g -pg -o .\ACME-Delivery.exe .\ACME-Delivery.cpp
+.\ACME-Delivery.exe
+gprof .\ACME-Delivery.exe > log.txt
+g++ -fprofile-arcs -ftest-coverage -o .\ACME-Delivery.exe .\ACME-Delivery.cpp
+.\ACME-Delivery.exe
+gcov .\ACME-Delivery.cpp
+type .\ACME-Delivery.cpp.gcov
