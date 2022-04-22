@@ -31,7 +31,7 @@ struct Entregador
     vector<Compra> comprasEntregues; // compras entregues pelo entregador
 };
 
-void limpar_memoria(int nVertices, list<no> adj[]) // limpa a memória alocada para o grafo
+void limpar_memoria(int nVertices, list<no> adj[]) // limpa a memória alocada para o grafo // Complexidade: O(nVertices)
 {
     for (int i = 0; i < nVertices; i++)
     {
@@ -46,7 +46,7 @@ void setCompraProcessada(vector<Compra> &compras, int idCompra);   // seta a com
 void setCompraNaoProcessadaSeNaoEntregue(vector<Compra> &compras); // seta todas as compras como não processadas se não foram entregues
 void setCompraEntregue(vector<Compra> &compras, int idCompra);     // seta a compra com id idCompra como entregue
 
-int main()
+int main() // Complexidade: O(n^3) -> (qtdCompras * qtdLocais ^ 2)
 {
     int qtdLocais;              // quantidade de locais
     int qtdEntregadores;        // quantidade de entregadores
@@ -72,7 +72,7 @@ int main()
     cin >> origem >> destino >> tempo;
     while (origem != -1 && destino != -1 && tempo != -1)
     {
-        cria_aresta(adj, origem, destino, tempo, NAO_ORIENTADO);
+        cria_aresta(adj, origem, destino, tempo, NAO_ORIENTADO); // Complexidade: O(1)
         cin >> origem >> destino >> tempo;
     }
 
@@ -80,7 +80,7 @@ int main()
     cin >> qtdCompras;
 
     cout << "Entre com as entregas: \n";
-    for (int i = 0; i < qtdCompras; i++)
+    for (int i = 0; i < qtdCompras; i++) // Complexidade: O(qtdCompras)
     {
         Compra compraaux;
         cout << "Entrega para local: \t";
@@ -88,6 +88,7 @@ int main()
         cout << "Peso da entrega: \t";
         cin >> compraaux.peso;
 
+        // inicialização da referência da compra
         compraaux.id = i;
         compraaux.menorTempo = INT_MAX;
         compraaux.processado = false;
@@ -104,7 +105,7 @@ int main()
         compraaux.refer.append(saux);
         compraaux.refer.append("Kg");
         ss.clear();
-
+        // o valor de compraaux.refer é: "Compra <local> - <peso>Kg"
         compras.push_back(compraaux);
     }
 
@@ -115,21 +116,21 @@ int main()
     cin >> pesoMaximo;
 
     cout << "Entre com a distancia inicial do entregador até o mercado: \n";
-    for (int i = 0; i < qtdEntregadores; i++)
+    for (int i = 0; i < qtdEntregadores; i++) // Complexidade: O(qtdEntregadores)
     {
         Entregador entregadoraux;
         cout << "Entregador " << i + 1 << ": \t";
         entregadoraux.id = i;
-        cin >> entregadoraux.tempoTotal;
+        cin >> entregadoraux.tempoTotal; // tempo total gasto pelo entregador para sair do local inicial e ir ao mercado
         entregadoraux.pesoTotal = 0;
         entregadores.push_back(entregadoraux);
     }
 
-    // inicializa o menor tempo de cada Compra
-    for (int i = 0; i < qtdCompras; i++)
+    // inicializa o menor tempo de cada Compra (entregar compra[x] no local y saindo do mercado)
+    for (int i = 0; i < qtdCompras; i++) // Complexidade: O(qtdCompras)
     {
         return_dijkstra aux;
-        aux = dijkstra(adj, qtdLocais + 1, mercado, compras[i].local);
+        aux = dijkstra(adj, qtdLocais + 1, mercado, compras[i].local); // Complexidade: O(n^2) -> (qtdLocais ^ 2)
         compras[i].menorTempo = aux.distancia;
         compras[i].caminho = aux.caminho;
     }
@@ -138,9 +139,9 @@ int main()
     sortEntregadores(entregadores);
 
     // Adicionar compras para entregadores
-    for (int i = 0; i < entregadores.size(); i++)
+    for (int i = 0; i < entregadores.size(); i++) // Complexidade: (entregadores.size() * compras.size())
     {
-        for (int j = 0; j < compras.size(); j++)
+        for (int j = 0; j < compras.size(); j++) // Complexidade: (compras.size())
         {
             Compra compra_aux = getCompraMaiorTempoNaoProcessada(compras); // se uma compra não for adicionada, ficará repetido.
             // em caso da compra_aux ter menorTempo == 0, significa que todas as compras já foram entregues
@@ -193,13 +194,13 @@ int main()
     }
 
     // Verificar se alguma compra não foi entregue, se sim, adicionar ao entregador mais proximo
-    for (int i = 0; i < compras.size(); i++)
+    for (int i = 0; i < compras.size(); i++) // Complexidade: (compras.size() * entregadores.size())
     {
         if (!compras[i].jaEntregue)
         {
             int menorTempo = INT_MAX;
             int menorTempoEntregador = 0;
-            for (int j = 0; j < entregadores.size(); j++)
+            for (int j = 0; j < entregadores.size(); j++) // Complexidade: (entregadores.size())
             {
                 // medir distancia do entregador até a compra considerando o caminho percorrido
                 return_dijkstra aux;
@@ -241,18 +242,18 @@ int main()
     cout << "################################" << endl;
 
     cout << "\nEntregadores: \n\n";
-    for (int i = 0; i < entregadores.size(); i++)
+    for (int i = 0; i < entregadores.size(); i++) // Complexidade: (entregadores.size() * (entregadores[i].comprasEntregues.size()) * (entregadores[i].caminhoPercorrido.size()))
     {
         cout << "Entregador " << entregadores[i].id + 1 << ": " << endl;
         cout << "Tempo total: " << entregadores[i].tempoTotal << endl;
         cout << "Peso total: " << entregadores[i].pesoTotal << endl;
         cout << "Compras entregues: " << entregadores[i].comprasEntregues.size() << endl;
-        for (int j = 0; j < entregadores[i].comprasEntregues.size(); j++)
+        for (int j = 0; j < entregadores[i].comprasEntregues.size(); j++) // Complexidade: (entregadores[i].comprasEntregues.size())
         {
             cout << "\t" << entregadores[i].comprasEntregues[j].refer << "\n";
         }
         cout << "\nCaminho percorrido: ";
-        for (list<int>::iterator p = entregadores[i].caminhoPercorrido.begin(); p != entregadores[i].caminhoPercorrido.end(); p++)
+        for (list<int>::iterator p = entregadores[i].caminhoPercorrido.begin(); p != entregadores[i].caminhoPercorrido.end(); p++) // Complexidade: (entregadores[i].caminhoPercorrido.size())
         {
             cout << *p << " ";
         }
@@ -264,7 +265,7 @@ int main()
 
     // limpar memoria das listas de compras e entregadores
     limpar_memoria(qtdLocais, adj);
-    for (int i = 0; i < qtdCompras; i++)
+    for (int i = 0; i < qtdCompras; i++) // Complexidade: (qtdCompras)
     {
         compras[i].caminho.clear();
     }
@@ -274,7 +275,7 @@ int main()
     return 0;
 }
 
-Compra getCompraMaiorTempoNaoProcessada(vector<Compra> compras)
+Compra getCompraMaiorTempoNaoProcessada(vector<Compra> compras) // Complexidade: (compras.size())
 {
     Compra compraM;
     compraM.menorTempo = 0;
@@ -291,7 +292,7 @@ Compra getCompraMaiorTempoNaoProcessada(vector<Compra> compras)
 }
 
 // Torna uma compra processada dado o seu id
-void setCompraProcessada(vector<Compra> &compras, int idCompra)
+void setCompraProcessada(vector<Compra> &compras, int idCompra) // Complexidade: (compras.size())
 {
     for (int i = 0; i < compras.size(); i++)
     {
@@ -302,7 +303,7 @@ void setCompraProcessada(vector<Compra> &compras, int idCompra)
     }
 }
 
-void setCompraNaoProcessadaSeNaoEntregue(vector<Compra> &compras)
+void setCompraNaoProcessadaSeNaoEntregue(vector<Compra> &compras) // Complexidade: (compras.size())
 {
     for (int i = 0; i < compras.size(); i++)
     {
@@ -313,7 +314,7 @@ void setCompraNaoProcessadaSeNaoEntregue(vector<Compra> &compras)
     }
 }
 
-void setCompraEntregue(vector<Compra> &compras, int idCompra)
+void setCompraEntregue(vector<Compra> &compras, int idCompra) // Complexidade: (compras.size())
 {
     for (int i = 0; i < compras.size(); i++)
     {
@@ -324,7 +325,7 @@ void setCompraEntregue(vector<Compra> &compras, int idCompra)
     }
 }
 
-void sortEntregadores(vector<Entregador> &entregadores)
+void sortEntregadores(vector<Entregador> &entregadores) // Complexidade: (entregadores.size() ^ 2)
 {
     for (int i = 0; i < entregadores.size(); i++)
     {
@@ -340,7 +341,7 @@ void sortEntregadores(vector<Entregador> &entregadores)
     }
 }
 
-void sortEntregadoresId(vector<Entregador> &entregadores)
+void sortEntregadoresId(vector<Entregador> &entregadores) // Complexidade: (entregadores.size() ^ 2)
 {
     for (int i = 0; i < entregadores.size(); i++)
     {
