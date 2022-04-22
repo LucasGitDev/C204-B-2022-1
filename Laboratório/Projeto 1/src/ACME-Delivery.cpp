@@ -211,7 +211,7 @@ int main()
                 }
             }
 
-            int localEntregador = entregadores[menorTempoEntregador].caminhoPercorrido.front();
+            int localEntregador = entregadores[menorTempoEntregador].caminhoPercorrido.back();
 
             // mudar caminho da compra e tempo
             return_dijkstra aux;
@@ -225,7 +225,8 @@ int main()
             entregadores[menorTempoEntregador].comprasEntregues.push_back(compras[i]);
             entregadores[menorTempoEntregador].pesoTotal += compras[i].peso;
             entregadores[menorTempoEntregador].tempoTotal += compras[i].menorTempo;
-            entregadores[menorTempoEntregador].caminhoPercorrido = compras[i].caminho;
+            compras[i].caminho.pop_front();
+            entregadores[menorTempoEntregador].caminhoPercorrido.insert(entregadores[menorTempoEntregador].caminhoPercorrido.end(), compras[i].caminho.begin(), compras[i].caminho.end());
             setCompraEntregue(compras, compras[i].id);
         }
     }
