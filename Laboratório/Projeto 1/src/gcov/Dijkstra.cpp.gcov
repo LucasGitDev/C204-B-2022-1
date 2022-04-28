@@ -1,0 +1,102 @@
+        -:    0:Source:.\Dijkstra.cpp
+        -:    0:Graph:ACME-Delivery.gcno
+        -:    0:Data:ACME-Delivery.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <iostream>
+        -:    2:#include <list>
+        -:    3:#define INT_MAX 999
+        -:    4:
+        -:    5:using namespace std;
+        -:    6:
+        -:    7:struct no
+       42:    8:{
+        -:    9:    int v;    // destino da aresta
+        -:   10:    int peso; // peso da aresta
+        -:   11:};
+        -:   12:
+        -:   13:struct return_dijkstra
+       30:   14:{
+        -:   15:    int distancia;
+        -:   16:    list<int> caminho;
+        -:   17:};
+        -:   18:
+       21:   19:void cria_aresta(list<no> adj[], int u, int v, int p, int orientado)
+        -:   20:{
+        -:   21:    no novo;
+       21:   22:    novo.v = v;
+       21:   23:    novo.peso = p;
+       21:   24:    adj[u].push_back(novo);
+       21:   25:    if (orientado == 0)
+        -:   26:    {
+       21:   27:        novo.v = u;
+       21:   28:        adj[v].push_back(novo);
+        -:   29:    }
+       21:   30:}
+        -:   31:
+        6:   32:return_dijkstra dijkstra(list<no> adj[], int nVertices, int start, int end)
+        -:   33:{
+        6:   34:    int distancia[nVertices];
+        6:   35:    int parent[nVertices];
+        6:   36:    bool intree[nVertices];
+        -:   37:    int v, destino, weight, dist;
+        -:   38:    int custo;
+        -:   39:    int i;
+        6:   40:    custo = 0;
+       54:   41:    for (i = 0; i < nVertices; i++)
+        -:   42:    {
+       48:   43:        distancia[i] = INT_MAX;
+       48:   44:        parent[i] = -1;
+       48:   45:        intree[i] = false;
+        -:   46:    }
+        -:   47:
+        6:   48:    distancia[start] = 0;
+        6:   49:    v = start;
+        -:   50:
+       60:   51:    while (intree[v] == false)
+        -:   52:    {
+       48:   53:        intree[v] = true;
+      300:   54:        for (list<no>::iterator p = adj[v].begin(); p != adj[v].end(); p++)
+        -:   55:        {
+      252:   56:            destino = p->v;
+      252:   57:            weight = p->peso;
+        -:   58:
+      252:   59:            if (distancia[destino] > distancia[v] + weight)
+        -:   60:            {
+       48:   61:                distancia[destino] = distancia[v] + weight;
+       48:   62:                parent[destino] = v;
+        -:   63:            }
+        -:   64:        }
+        -:   65:
+       48:   66:        v = 0;
+       48:   67:        dist = INT_MAX;
+      432:   68:        for (i = 0; i < nVertices; i++)
+        -:   69:        {
+      384:   70:            if (intree[i] == false && distancia[i] < dist)
+        -:   71:            {
+       66:   72:                dist = distancia[i];
+       66:   73:                v = i;
+        -:   74:            }
+        -:   75:        }
+        -:   76:    }
+        -:   77:
+        6:   78:    list<int> pilha;
+        -:   79:
+        6:   80:    pilha.push_front(end);
+        -:   81:
+       14:   82:    for (int pai = parent[end]; pai != -1; pai = parent[pai])
+        -:   83:    {
+        8:   84:        pilha.push_front(pai);
+        -:   85:    }
+        -:   86:
+        6:   87:    return_dijkstra retorno;
+        6:   88:    retorno.distancia = distancia[end];
+        6:   89:    int j = 0;
+       20:   90:    for (list<int>::iterator p = pilha.begin(); p != pilha.end(); p++)
+        -:   91:    {
+       14:   92:        retorno.caminho.push_back(*p);
+       14:   93:        j++;
+        -:   94:    }
+        -:   95:
+        6:   96:    return retorno;
+        -:   97:}

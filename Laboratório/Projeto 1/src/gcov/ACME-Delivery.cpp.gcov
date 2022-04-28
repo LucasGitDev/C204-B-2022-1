@@ -1,0 +1,361 @@
+        -:    0:Source:.\ACME-Delivery.cpp
+        -:    0:Graph:ACME-Delivery.gcno
+        -:    0:Data:ACME-Delivery.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <iostream>
+        -:    2:#include <list>
+        -:    3:#include <string>
+        -:    4:#include <vector>
+        -:    5:#include <algorithm>
+        -:    6:#include <sstream>
+        -:    7:#include "Dijkstra.cpp"
+        -:    8:
+        -:    9:#define NAO_ORIENTADO 0
+        -:   10:
+        -:   11:using namespace std;
+        -:   12:
+        -:   13:struct Compra
+      530:   14:{
+        -:   15:    int id;
+        -:   16:    int local;         // local de origem da Compra
+        -:   17:    int peso;          // peso da Compra
+        -:   18:    string refer;      // referência da Compra
+        -:   19:    int menorTempo;    // menor tempo para entrega da Compra
+        -:   20:    list<int> caminho; // caminho para entrega da Compra
+        -:   21:    bool processado;   // indica se a Compra já foi processada
+        -:   22:    bool jaEntregue;   // indica se a Compra já foi entregue
+        -:   23:};
+        -:   24:
+        -:   25:struct Entregador
+       90:   26:{
+        -:   27:    int id;
+        -:   28:    int tempoTotal;                  // tempo total gasto pelo entregador
+        -:   29:    int pesoTotal;                   // peso total gasto pelo entregador
+        -:   30:    list<int> caminhoPercorrido;     // caminho percorrido pelo entregador
+        -:   31:    vector<Compra> comprasEntregues; // compras entregues pelo entregador
+        -:   32:};
+        -:   33:
+        1:   34:void limpar_memoria(int nVertices, list<no> adj[]) // limpa a memória alocada para o grafo
+        -:   35:{
+        8:   36:    for (int i = 0; i < nVertices; i++)
+        -:   37:    {
+        7:   38:        adj[i].clear();
+        -:   39:    }
+        1:   40:}
+        -:   41:
+        -:   42:Compra getCompraMaiorTempoNaoProcessada(vector<Compra> compras);   // retorna a compra com maior tempo não processada
+        -:   43:void sortEntregadores(vector<Entregador> &entregadores);           // ordena os entregadores por tempo total
+        -:   44:void sortEntregadoresId(vector<Entregador> &entregadores);         // ordena os entregadores por id
+        -:   45:void setCompraProcessada(vector<Compra> &compras, int idCompra);   // seta a compra com id idCompra como processada
+        -:   46:void setCompraNaoProcessadaSeNaoEntregue(vector<Compra> &compras); // seta todas as compras como não processadas se não foram entregues
+        -:   47:void setCompraEntregue(vector<Compra> &compras, int idCompra);     // seta a compra com id idCompra como entregue
+        -:   48:
+        1:   49:int main()
+        -:   50:{
+        -:   51:    int qtdLocais;              // quantidade de locais
+        -:   52:    int qtdEntregadores;        // quantidade de entregadores
+        -:   53:    int qtdCompras;             // quantidade de compras
+        -:   54:    int mercado;                // local do mercado
+        -:   55:    int origem, destino, tempo; // origem, destino e tempo da aresta
+        -:   56:    int pesoMaximo;             // peso máximo
+        -:   57:
+        1:   58:    stringstream ss; // stringstream para ler o input
+        1:   59:    string saux;     // string auxiliar para ler o input
+        -:   60:
+        1:   61:    list<no> adj[20];                // lista de adjacência
+        1:   62:    vector<Compra> compras;          // compras
+        1:   63:    vector<Entregador> entregadores; // entregadores
+        -:   64:
+        1:   65:    cout << "Quantidade de locais: \t";
+        1:   66:    cin >> qtdLocais;
+        -:   67:
+        1:   68:    cout << "Qual o numero referente ao local de origem: \t";
+        1:   69:    cin >> mercado;
+        -:   70:
+        1:   71:    cout << "Entre com o grafo dos locais (-1 -1 -1 para sair):" << endl;
+        1:   72:    cin >> origem >> destino >> tempo;
+       23:   73:    while (origem != -1 && destino != -1 && tempo != -1)
+        -:   74:    {
+       21:   75:        cria_aresta(adj, origem, destino, tempo, NAO_ORIENTADO);
+       21:   76:        cin >> origem >> destino >> tempo;
+        -:   77:    }
+        -:   78:
+        1:   79:    cout << "Quantidade de entregas: \t";
+        1:   80:    cin >> qtdCompras;
+        -:   81:
+        1:   82:    cout << "Entre com as entregas: \n";
+        7:   83:    for (int i = 0; i < qtdCompras; i++)
+        -:   84:    {
+        6:   85:        Compra compraaux;
+        6:   86:        cout << "Entrega para local: \t";
+        6:   87:        cin >> compraaux.local;
+        6:   88:        cout << "Peso da entrega: \t";
+        6:   89:        cin >> compraaux.peso;
+        -:   90:
+        6:   91:        compraaux.id = i;
+        6:   92:        compraaux.menorTempo = INT_MAX;
+        6:   93:        compraaux.processado = false;
+        -:   94:
+        6:   95:        compraaux.refer = "Compra ";
+        6:   96:        ss << compraaux.local;
+        6:   97:        ss >> saux;
+        6:   98:        compraaux.refer.append(saux);
+        6:   99:        ss.clear();
+        -:  100:
+        6:  101:        ss << compraaux.peso;
+        6:  102:        ss >> saux;
+        6:  103:        compraaux.refer.append(" - ");
+        6:  104:        compraaux.refer.append(saux);
+        6:  105:        compraaux.refer.append("Kg");
+        6:  106:        ss.clear();
+        -:  107:
+        6:  108:        compras.push_back(compraaux);
+        -:  109:    }
+        -:  110:
+        1:  111:    cout << "Quantidade de entregadores: ";
+        1:  112:    cin >> qtdEntregadores;
+        -:  113:
+        1:  114:    cout << "Peso maximo por entregador: ";
+        1:  115:    cin >> pesoMaximo;
+        -:  116:
+        1:  117:    cout << "Entre com a distancia inicial do entregador até o mercado: \n";
+        6:  118:    for (int i = 0; i < qtdEntregadores; i++)
+        -:  119:    {
+        5:  120:        Entregador entregadoraux;
+        5:  121:        cout << "Entregador " << i + 1 << ": \t";
+        5:  122:        entregadoraux.id = i;
+        5:  123:        cin >> entregadoraux.tempoTotal;
+        5:  124:        entregadoraux.pesoTotal = 0;
+        5:  125:        entregadores.push_back(entregadoraux);
+        -:  126:    }
+        -:  127:
+        -:  128:    // inicializa o menor tempo de cada Compra
+        7:  129:    for (int i = 0; i < qtdCompras; i++)
+        -:  130:    {
+        6:  131:        return_dijkstra aux;
+        6:  132:        aux = dijkstra(adj, qtdLocais + 1, mercado, compras[i].local);
+        6:  133:        compras[i].menorTempo = aux.distancia;
+        6:  134:        compras[i].caminho = aux.caminho;
+        -:  135:    }
+        -:  136:
+        -:  137:    // ordenar entregadores por menor tempo total para c++98
+        1:  138:    sortEntregadores(entregadores);
+        -:  139:
+        -:  140:    // Adicionar compras para entregadores
+        6:  141:    for (int i = 0; i < entregadores.size(); i++)
+        -:  142:    {
+        5:  143:        for (int j = 0; j < compras.size(); j++)
+        -:  144:        {
+       30:  145:            Compra compra_aux = getCompraMaiorTempoNaoProcessada(compras); // se uma compra não for adicionada, ficará repetido.
+        -:  146:            // em caso da compra_aux ter menorTempo == 0, significa que todas as compras já foram entregues
+        -:  147:            // então não é necessário adicionar mais compras para os entregadores
+        -:  148:
+       30:  149:            if (compra_aux.menorTempo != 0)
+        -:  150:            {
+       16:  151:                if (entregadores[i].caminhoPercorrido.size() == 0)
+        -:  152:                {
+        5:  153:                    if (entregadores[i].pesoTotal + compra_aux.peso <= pesoMaximo && !compra_aux.jaEntregue)
+        -:  154:                    {
+        5:  155:                        entregadores[i].comprasEntregues.push_back(compra_aux);
+        5:  156:                        entregadores[i].pesoTotal += compra_aux.peso;
+        5:  157:                        entregadores[i].tempoTotal += compra_aux.menorTempo;
+        5:  158:                        entregadores[i].caminhoPercorrido = compra_aux.caminho;
+        5:  159:                        setCompraEntregue(compras, compra_aux.id);
+        -:  160:                    }
+        -:  161:
+        5:  162:                    if (entregadores[i].pesoTotal == pesoMaximo)
+        -:  163:                    {
+        -:  164:                        break;
+        -:  165:                    }
+        -:  166:                }
+        -:  167:                else
+        -:  168:                { // Verificar se alguma compra não processada está no caminho do entregador
+        -:  169:
+       11:  170:                    if (find(entregadores[i].caminhoPercorrido.begin(), entregadores[i].caminhoPercorrido.end(), compra_aux.local) != entregadores[i].caminhoPercorrido.end())
+        -:  171:                    {
+        1:  172:                        if (entregadores[i].pesoTotal + compra_aux.peso <= pesoMaximo && !compra_aux.jaEntregue)
+        -:  173:                        {
+        1:  174:                            entregadores[i].comprasEntregues.push_back(compra_aux);
+        1:  175:                            entregadores[i].pesoTotal += compra_aux.peso;
+        1:  176:                            entregadores[i].tempoTotal += compra_aux.menorTempo;
+        1:  177:                            setCompraEntregue(compras, compra_aux.id);
+        -:  178:                        }
+        -:  179:                    }
+        -:  180:
+       11:  181:                    if (entregadores[i].pesoTotal == pesoMaximo)
+        -:  182:                    {
+        -:  183:                        break;
+        -:  184:                    }
+        -:  185:                }
+        -:  186:            }
+       30:  187:            setCompraProcessada(compras, compra_aux.id);
+        -:  188:        }
+        -:  189:        // remover todas as repetições do mercado do caminho percorrido
+        5:  190:        entregadores[i].caminhoPercorrido.remove(mercado);
+        5:  191:        entregadores[i].caminhoPercorrido.push_front(mercado);
+        5:  192:        setCompraNaoProcessadaSeNaoEntregue(compras);
+        -:  193:    }
+        -:  194:
+        -:  195:    // Verificar se alguma compra não foi entregue, se sim, adicionar ao entregador mais proximo
+        7:  196:    for (int i = 0; i < compras.size(); i++)
+        -:  197:    {
+        6:  198:        if (!compras[i].jaEntregue)
+        -:  199:        {
+    #####:  200:            int menorTempo = INT_MAX;
+    #####:  201:            int menorTempoEntregador = 0;
+    #####:  202:            for (int j = 0; j < entregadores.size(); j++)
+        -:  203:            {
+        -:  204:                // medir distancia do entregador até a compra considerando o caminho percorrido
+    #####:  205:                return_dijkstra aux;
+    #####:  206:                aux = dijkstra(adj, qtdLocais + 1, entregadores[j].caminhoPercorrido.front(), compras[i].local);
+    #####:  207:                if (aux.distancia + entregadores[j].tempoTotal < menorTempo)
+        -:  208:                {
+    #####:  209:                    menorTempo = aux.distancia + entregadores[j].tempoTotal;
+    #####:  210:                    menorTempoEntregador = j;
+        -:  211:                }
+        -:  212:            }
+        -:  213:
+    #####:  214:            int localEntregador = entregadores[menorTempoEntregador].caminhoPercorrido.front();
+        -:  215:
+        -:  216:            // mudar caminho da compra e tempo
+    #####:  217:            return_dijkstra aux;
+    #####:  218:            aux = dijkstra(adj, qtdLocais + 1, localEntregador, compras[i].local);
+        -:  219:
+    #####:  220:            compras[i].caminho = aux.caminho;
+    #####:  221:            compras[i].menorTempo = aux.distancia;
+        -:  222:
+        -:  223:            // adicionar compra ao entregador
+        -:  224:
+    #####:  225:            entregadores[menorTempoEntregador].comprasEntregues.push_back(compras[i]);
+    #####:  226:            entregadores[menorTempoEntregador].pesoTotal += compras[i].peso;
+    #####:  227:            entregadores[menorTempoEntregador].tempoTotal += compras[i].menorTempo;
+    #####:  228:            entregadores[menorTempoEntregador].caminhoPercorrido = compras[i].caminho;
+    #####:  229:            setCompraEntregue(compras, compras[i].id);
+        -:  230:        }
+        -:  231:    }
+        -:  232:
+        -:  233:    // Ordenar entregadores por menor tempo total
+        1:  234:    sortEntregadoresId(entregadores);
+        -:  235:
+        -:  236:    // Imprimir entregadores
+        1:  237:    cout << "\n\n################################" << endl;
+        1:  238:    cout << "################################" << endl;
+        1:  239:    cout << "########## Resultados ##########" << endl;
+        1:  240:    cout << "################################" << endl;
+        -:  241:
+        1:  242:    cout << "\nEntregadores: \n\n";
+        6:  243:    for (int i = 0; i < entregadores.size(); i++)
+        -:  244:    {
+        5:  245:        cout << "Entregador " << entregadores[i].id + 1 << ": " << endl;
+        5:  246:        cout << "Tempo total: " << entregadores[i].tempoTotal << endl;
+        5:  247:        cout << "Peso total: " << entregadores[i].pesoTotal << endl;
+        5:  248:        cout << "Compras entregues: " << entregadores[i].comprasEntregues.size() << endl;
+       11:  249:        for (int j = 0; j < entregadores[i].comprasEntregues.size(); j++)
+        -:  250:        {
+        6:  251:            cout << "\t" << entregadores[i].comprasEntregues[j].refer << "\n";
+        -:  252:        }
+        5:  253:        cout << "\nCaminho percorrido: ";
+       17:  254:        for (list<int>::iterator p = entregadores[i].caminhoPercorrido.begin(); p != entregadores[i].caminhoPercorrido.end(); p++)
+        -:  255:        {
+       12:  256:            cout << *p << " ";
+        -:  257:        }
+        5:  258:        cout << "\n################################\n\n";
+        -:  259:
+        5:  260:        entregadores[i].caminhoPercorrido.clear();
+        5:  261:        entregadores[i].comprasEntregues.clear();
+        -:  262:    }
+        -:  263:
+        -:  264:    // limpar memoria das listas de compras e entregadores
+        1:  265:    limpar_memoria(qtdLocais, adj);
+        7:  266:    for (int i = 0; i < qtdCompras; i++)
+        -:  267:    {
+        6:  268:        compras[i].caminho.clear();
+        -:  269:    }
+        1:  270:    compras.clear();
+        1:  271:    entregadores.clear();
+        -:  272:
+        1:  273:    return 0;
+        -:  274:}
+        -:  275:
+       30:  276:Compra getCompraMaiorTempoNaoProcessada(vector<Compra> compras)
+        -:  277:{
+       30:  278:    Compra compraM;
+       30:  279:    compraM.menorTempo = 0;
+        -:  280:
+      210:  281:    for (int i = 0; i < compras.size(); i++)
+        -:  282:    {
+      180:  283:        if (compras[i].menorTempo > compraM.menorTempo && compras[i].processado == false)
+        -:  284:        {
+       24:  285:            compraM = compras[i];
+        -:  286:        }
+        -:  287:    }
+        -:  288:
+    #####:  289:    return compraM;
+        -:  290:}
+        -:  291:
+        -:  292:// Torna uma compra processada dado o seu id
+       30:  293:void setCompraProcessada(vector<Compra> &compras, int idCompra)
+        -:  294:{
+      210:  295:    for (int i = 0; i < compras.size(); i++)
+        -:  296:    {
+      180:  297:        if (compras[i].id == idCompra)
+        -:  298:        {
+       30:  299:            compras[i].processado = true;
+        -:  300:        }
+        -:  301:    }
+       30:  302:}
+        -:  303:
+        5:  304:void setCompraNaoProcessadaSeNaoEntregue(vector<Compra> &compras)
+        -:  305:{
+       35:  306:    for (int i = 0; i < compras.size(); i++)
+        -:  307:    {
+       30:  308:        if (!compras[i].jaEntregue)
+        -:  309:        {
+       10:  310:            compras[i].processado = false;
+        -:  311:        }
+        -:  312:    }
+        5:  313:}
+        -:  314:
+        6:  315:void setCompraEntregue(vector<Compra> &compras, int idCompra)
+        -:  316:{
+       42:  317:    for (int i = 0; i < compras.size(); i++)
+        -:  318:    {
+       36:  319:        if (compras[i].id == idCompra)
+        -:  320:        {
+        6:  321:            compras[i].jaEntregue = true;
+        -:  322:        }
+        -:  323:    }
+        6:  324:}
+        -:  325:
+        1:  326:void sortEntregadores(vector<Entregador> &entregadores)
+        -:  327:{
+        6:  328:    for (int i = 0; i < entregadores.size(); i++)
+        -:  329:    {
+       30:  330:        for (int j = 0; j < entregadores.size(); j++)
+        -:  331:        {
+       25:  332:            if (entregadores[i].tempoTotal < entregadores[j].tempoTotal)
+        -:  333:            {
+        8:  334:                Entregador aux = entregadores[i];
+        8:  335:                entregadores[i] = entregadores[j];
+        8:  336:                entregadores[j] = aux;
+        -:  337:            }
+        -:  338:        }
+        -:  339:    }
+        1:  340:}
+        -:  341:
+        1:  342:void sortEntregadoresId(vector<Entregador> &entregadores)
+        -:  343:{
+        6:  344:    for (int i = 0; i < entregadores.size(); i++)
+        -:  345:    {
+       30:  346:        for (int j = 0; j < entregadores.size(); j++)
+        -:  347:        {
+       25:  348:            if (entregadores[i].id < entregadores[j].id)
+        -:  349:            {
+        6:  350:                Entregador aux = entregadores[i];
+        6:  351:                entregadores[i] = entregadores[j];
+        6:  352:                entregadores[j] = aux;
+        -:  353:            }
+        -:  354:        }
+        -:  355:    }
+        4:  356:}/*EOF*/

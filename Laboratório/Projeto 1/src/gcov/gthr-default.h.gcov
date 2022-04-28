@@ -1,0 +1,773 @@
+        -:    0:Source:c:\program files (x86)\falcon\mingw\bin\../lib/gcc/mingw32/4.4.1/include/c++/mingw32/bits/gthr-default.h
+        -:    0:Graph:ACME-Delivery.gcno
+        -:    0:Data:ACME-Delivery.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/* Threads compatibility routines for libgcc2 and libobjc.  */
+        -:    2:/* Compile this one with gcc.  */
+        -:    3:
+        -:    4:/* Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2008, 2009
+        -:    5:   Free Software Foundation, Inc.
+        -:    6:   Contributed by Mumit Khan <khan@xraylith.wisc.edu>.
+        -:    7:
+        -:    8:This file is part of GCC.
+        -:    9:
+        -:   10:GCC is free software; you can redistribute it and/or modify it under
+        -:   11:the terms of the GNU General Public License as published by the Free
+        -:   12:Software Foundation; either version 3, or (at your option) any later
+        -:   13:version.
+        -:   14:
+        -:   15:GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+        -:   16:WARRANTY; without even the implied warranty of MERCHANTABILITY or
+        -:   17:FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+        -:   18:for more details.
+        -:   19:
+        -:   20:Under Section 7 of GPL version 3, you are granted additional
+        -:   21:permissions described in the GCC Runtime Library Exception, version
+        -:   22:3.1, as published by the Free Software Foundation.
+        -:   23:
+        -:   24:You should have received a copy of the GNU General Public License and
+        -:   25:a copy of the GCC Runtime Library Exception along with this program;
+        -:   26:see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+        -:   27:<http://www.gnu.org/licenses/>.  */
+        -:   28:
+        -:   29:#ifndef GCC_GTHR_WIN32_H
+        -:   30:#define GCC_GTHR_WIN32_H
+        -:   31:
+        -:   32:/* Make sure CONST_CAST2 (origin in system.h) is declared.  */
+        -:   33:#ifndef CONST_CAST2
+        -:   34:#define CONST_CAST2(TOTYPE,FROMTYPE,X) ((__extension__(union {FROMTYPE _q; TOTYPE _nq;})(X))._nq)
+        -:   35:#endif
+        -:   36:
+        -:   37:/* Windows32 threads specific definitions. The windows32 threading model
+        -:   38:   does not map well into pthread-inspired gcc's threading model, and so
+        -:   39:   there are caveats one needs to be aware of.
+        -:   40:
+        -:   41:   1. The destructor supplied to __gthread_key_create is ignored for
+        -:   42:      generic x86-win32 ports. This will certainly cause memory leaks
+        -:   43:      due to unreclaimed eh contexts (sizeof (eh_context) is at least
+        -:   44:      24 bytes for x86 currently).
+        -:   45:
+        -:   46:      This memory leak may be significant for long-running applications
+        -:   47:      that make heavy use of C++ EH.
+        -:   48:
+        -:   49:      However, Mingw runtime (version 0.3 or newer) provides a mechanism
+        -:   50:      to emulate pthreads key dtors; the runtime provides a special DLL,
+        -:   51:      linked in if -mthreads option is specified, that runs the dtors in
+        -:   52:      the reverse order of registration when each thread exits. If
+        -:   53:      -mthreads option is not given, a stub is linked in instead of the
+        -:   54:      DLL, which results in memory leak. Other x86-win32 ports can use
+        -:   55:      the same technique of course to avoid the leak.
+        -:   56:
+        -:   57:   2. The error codes returned are non-POSIX like, and cast into ints.
+        -:   58:      This may cause incorrect error return due to truncation values on
+        -:   59:      hw where sizeof (DWORD) > sizeof (int).
+        -:   60:
+        -:   61:   3. We are currently using a special mutex instead of the Critical
+        -:   62:      Sections, since Win9x does not support TryEnterCriticalSection
+        -:   63:      (while NT does).
+        -:   64:
+        -:   65:   The basic framework should work well enough. In the long term, GCC
+        -:   66:   needs to use Structured Exception Handling on Windows32.  */
+        -:   67:
+        -:   68:#define __GTHREADS 1
+        -:   69:
+        -:   70:#include <errno.h>
+        -:   71:#ifdef __MINGW32__
+        -:   72:#include <_mingw.h>
+        -:   73:#endif
+        -:   74:
+        -:   75:#ifdef _LIBOBJC
+        -:   76:
+        -:   77:/* This is necessary to prevent windef.h (included from windows.h) from
+        -:   78:   defining its own BOOL as a typedef.  */
+        -:   79:#ifndef __OBJC__
+        -:   80:#define __OBJC__
+        -:   81:#endif
+        -:   82:#include <windows.h>
+        -:   83:/* Now undef the windows BOOL.  */
+        -:   84:#undef BOOL
+        -:   85:
+        -:   86:/* Key structure for maintaining thread specific storage */
+        -:   87:static DWORD	__gthread_objc_data_tls = (DWORD) -1;
+        -:   88:
+        -:   89:/* Backend initialization functions */
+        -:   90:
+        -:   91:/* Initialize the threads subsystem.  */
+        -:   92:int
+        -:   93:__gthread_objc_init_thread_system (void)
+        -:   94:{
+        -:   95:  /* Initialize the thread storage key.  */
+        -:   96:  if ((__gthread_objc_data_tls = TlsAlloc ()) != (DWORD) -1)
+        -:   97:    return 0;
+        -:   98:  else
+        -:   99:    return -1;
+        -:  100:}
+        -:  101:
+        -:  102:/* Close the threads subsystem.  */
+        -:  103:int
+        -:  104:__gthread_objc_close_thread_system (void)
+        -:  105:{
+        -:  106:  if (__gthread_objc_data_tls != (DWORD) -1)
+        -:  107:    TlsFree (__gthread_objc_data_tls);
+        -:  108:  return 0;
+        -:  109:}
+        -:  110:
+        -:  111:/* Backend thread functions */
+        -:  112:
+        -:  113:/* Create a new thread of execution.  */
+        -:  114:objc_thread_t
+        -:  115:__gthread_objc_thread_detach (void (*func)(void *arg), void *arg)
+        -:  116:{
+        -:  117:  DWORD	thread_id = 0;
+        -:  118:  HANDLE win32_handle;
+        -:  119:
+        -:  120:  if (!(win32_handle = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) func,
+        -:  121:				     arg, 0, &thread_id)))
+        -:  122:    thread_id = 0;
+        -:  123:
+        -:  124:  return (objc_thread_t) thread_id;
+        -:  125:}
+        -:  126:
+        -:  127:/* Set the current thread's priority.  */
+        -:  128:int
+        -:  129:__gthread_objc_thread_set_priority (int priority)
+        -:  130:{
+        -:  131:  int sys_priority = 0;
+        -:  132:
+        -:  133:  switch (priority)
+        -:  134:    {
+        -:  135:    case OBJC_THREAD_INTERACTIVE_PRIORITY:
+        -:  136:      sys_priority = THREAD_PRIORITY_NORMAL;
+        -:  137:      break;
+        -:  138:    default:
+        -:  139:    case OBJC_THREAD_BACKGROUND_PRIORITY:
+        -:  140:      sys_priority = THREAD_PRIORITY_BELOW_NORMAL;
+        -:  141:      break;
+        -:  142:    case OBJC_THREAD_LOW_PRIORITY:
+        -:  143:      sys_priority = THREAD_PRIORITY_LOWEST;
+        -:  144:      break;
+        -:  145:    }
+        -:  146:
+        -:  147:  /* Change priority */
+        -:  148:  if (SetThreadPriority (GetCurrentThread (), sys_priority))
+        -:  149:    return 0;
+        -:  150:  else
+        -:  151:    return -1;
+        -:  152:}
+        -:  153:
+        -:  154:/* Return the current thread's priority.  */
+        -:  155:int
+        -:  156:__gthread_objc_thread_get_priority (void)
+        -:  157:{
+        -:  158:  int sys_priority;
+        -:  159:
+        -:  160:  sys_priority = GetThreadPriority (GetCurrentThread ());
+        -:  161:
+        -:  162:  switch (sys_priority)
+        -:  163:    {
+        -:  164:    case THREAD_PRIORITY_HIGHEST:
+        -:  165:    case THREAD_PRIORITY_TIME_CRITICAL:
+        -:  166:    case THREAD_PRIORITY_ABOVE_NORMAL:
+        -:  167:    case THREAD_PRIORITY_NORMAL:
+        -:  168:      return OBJC_THREAD_INTERACTIVE_PRIORITY;
+        -:  169:
+        -:  170:    default:
+        -:  171:    case THREAD_PRIORITY_BELOW_NORMAL:
+        -:  172:      return OBJC_THREAD_BACKGROUND_PRIORITY;
+        -:  173:
+        -:  174:    case THREAD_PRIORITY_IDLE:
+        -:  175:    case THREAD_PRIORITY_LOWEST:
+        -:  176:      return OBJC_THREAD_LOW_PRIORITY;
+        -:  177:    }
+        -:  178:
+        -:  179:  /* Couldn't get priority.  */
+        -:  180:  return -1;
+        -:  181:}
+        -:  182:
+        -:  183:/* Yield our process time to another thread.  */
+        -:  184:void
+        -:  185:__gthread_objc_thread_yield (void)
+        -:  186:{
+        -:  187:  Sleep (0);
+        -:  188:}
+        -:  189:
+        -:  190:/* Terminate the current thread.  */
+        -:  191:int
+        -:  192:__gthread_objc_thread_exit (void)
+        -:  193:{
+        -:  194:  /* exit the thread */
+        -:  195:  ExitThread (__objc_thread_exit_status);
+        -:  196:
+        -:  197:  /* Failed if we reached here */
+        -:  198:  return -1;
+        -:  199:}
+        -:  200:
+        -:  201:/* Returns an integer value which uniquely describes a thread.  */
+        -:  202:objc_thread_t
+        -:  203:__gthread_objc_thread_id (void)
+        -:  204:{
+        -:  205:  return (objc_thread_t) GetCurrentThreadId ();
+        -:  206:}
+        -:  207:
+        -:  208:/* Sets the thread's local storage pointer.  */
+        -:  209:int
+        -:  210:__gthread_objc_thread_set_data (void *value)
+        -:  211:{
+        -:  212:  if (TlsSetValue (__gthread_objc_data_tls, value))
+        -:  213:    return 0;
+        -:  214:  else
+        -:  215:    return -1;
+        -:  216:}
+        -:  217:
+        -:  218:/* Returns the thread's local storage pointer.  */
+        -:  219:void *
+        -:  220:__gthread_objc_thread_get_data (void)
+        -:  221:{
+        -:  222:  DWORD lasterror;
+        -:  223:  void *ptr;
+        -:  224:
+        -:  225:  lasterror = GetLastError ();
+        -:  226:
+        -:  227:  ptr = TlsGetValue (__gthread_objc_data_tls);          /* Return thread data.  */
+        -:  228:
+        -:  229:  SetLastError (lasterror);
+        -:  230:
+        -:  231:  return ptr;
+        -:  232:}
+        -:  233:
+        -:  234:/* Backend mutex functions */
+        -:  235:
+        -:  236:/* Allocate a mutex.  */
+        -:  237:int
+        -:  238:__gthread_objc_mutex_allocate (objc_mutex_t mutex)
+        -:  239:{
+        -:  240:  if ((mutex->backend = (void *) CreateMutex (NULL, 0, NULL)) == NULL)
+        -:  241:    return -1;
+        -:  242:  else
+        -:  243:    return 0;
+        -:  244:}
+        -:  245:
+        -:  246:/* Deallocate a mutex.  */
+        -:  247:int
+        -:  248:__gthread_objc_mutex_deallocate (objc_mutex_t mutex)
+        -:  249:{
+        -:  250:  CloseHandle ((HANDLE) (mutex->backend));
+        -:  251:  return 0;
+        -:  252:}
+        -:  253:
+        -:  254:/* Grab a lock on a mutex.  */
+        -:  255:int
+        -:  256:__gthread_objc_mutex_lock (objc_mutex_t mutex)
+        -:  257:{
+        -:  258:  int status;
+        -:  259:
+        -:  260:  status = WaitForSingleObject ((HANDLE) (mutex->backend), INFINITE);
+        -:  261:  if (status != WAIT_OBJECT_0 && status != WAIT_ABANDONED)
+        -:  262:    return -1;
+        -:  263:  else
+        -:  264:    return 0;
+        -:  265:}
+        -:  266:
+        -:  267:/* Try to grab a lock on a mutex.  */
+        -:  268:int
+        -:  269:__gthread_objc_mutex_trylock (objc_mutex_t mutex)
+        -:  270:{
+        -:  271:  int status;
+        -:  272:
+        -:  273:  status = WaitForSingleObject ((HANDLE) (mutex->backend), 0);
+        -:  274:  if (status != WAIT_OBJECT_0 && status != WAIT_ABANDONED)
+        -:  275:    return -1;
+        -:  276:  else
+        -:  277:    return 0;
+        -:  278:}
+        -:  279:
+        -:  280:/* Unlock the mutex */
+        -:  281:int
+        -:  282:__gthread_objc_mutex_unlock (objc_mutex_t mutex)
+        -:  283:{
+        -:  284:  if (ReleaseMutex ((HANDLE) (mutex->backend)) == 0)
+        -:  285:    return -1;
+        -:  286:  else
+        -:  287:    return 0;
+        -:  288:}
+        -:  289:
+        -:  290:/* Backend condition mutex functions */
+        -:  291:
+        -:  292:/* Allocate a condition.  */
+        -:  293:int
+        -:  294:__gthread_objc_condition_allocate (objc_condition_t condition)
+        -:  295:{
+        -:  296:  /* Unimplemented.  */
+        -:  297:  return -1;
+        -:  298:}
+        -:  299:
+        -:  300:/* Deallocate a condition.  */
+        -:  301:int
+        -:  302:__gthread_objc_condition_deallocate (objc_condition_t condition)
+        -:  303:{
+        -:  304:  /* Unimplemented.  */
+        -:  305:  return -1;
+        -:  306:}
+        -:  307:
+        -:  308:/* Wait on the condition */
+        -:  309:int
+        -:  310:__gthread_objc_condition_wait (objc_condition_t condition, objc_mutex_t mutex)
+        -:  311:{
+        -:  312:  /* Unimplemented.  */
+        -:  313:  return -1;
+        -:  314:}
+        -:  315:
+        -:  316:/* Wake up all threads waiting on this condition.  */
+        -:  317:int
+        -:  318:__gthread_objc_condition_broadcast (objc_condition_t condition)
+        -:  319:{
+        -:  320:  /* Unimplemented.  */
+        -:  321:  return -1;
+        -:  322:}
+        -:  323:
+        -:  324:/* Wake up one thread waiting on this condition.  */
+        -:  325:int
+        -:  326:__gthread_objc_condition_signal (objc_condition_t condition)
+        -:  327:{
+        -:  328:  /* Unimplemented.  */
+        -:  329:  return -1;
+        -:  330:}
+        -:  331:
+        -:  332:#else /* _LIBOBJC */
+        -:  333:
+        -:  334:#ifdef __cplusplus
+        -:  335:extern "C" {
+        -:  336:#endif
+        -:  337:
+        -:  338:typedef unsigned long __gthread_key_t;
+        -:  339:
+        -:  340:typedef struct {
+        -:  341:  int done;
+        -:  342:  long started;
+        -:  343:} __gthread_once_t;
+        -:  344:
+        -:  345:typedef struct {
+        -:  346:  long counter;
+        -:  347:  void *sema;
+        -:  348:} __gthread_mutex_t;
+        -:  349:
+        -:  350:typedef struct {
+        -:  351:  long counter;
+        -:  352:  long depth;
+        -:  353:  unsigned long owner;
+        -:  354:  void *sema;
+        -:  355:} __gthread_recursive_mutex_t;
+        -:  356:
+        -:  357:#define __GTHREAD_ONCE_INIT {0, -1}
+        -:  358:#define __GTHREAD_MUTEX_INIT_FUNCTION __gthread_mutex_init_function
+        -:  359:#define __GTHREAD_MUTEX_INIT_DEFAULT {-1, 0}
+        -:  360:#define __GTHREAD_RECURSIVE_MUTEX_INIT_FUNCTION \
+        -:  361:  __gthread_recursive_mutex_init_function
+        -:  362:#define __GTHREAD_RECURSIVE_MUTEX_INIT_DEFAULT {-1, 0, 0, 0}
+        -:  363:
+        -:  364:#if __MINGW32_MAJOR_VERSION >= 1 || \
+        -:  365:  (__MINGW32_MAJOR_VERSION == 0 && __MINGW32_MINOR_VERSION > 2)
+        -:  366:#define MINGW32_SUPPORTS_MT_EH 1
+        -:  367:/* Mingw runtime >= v0.3 provides a magic variable that is set to nonzero
+        -:  368:   if -mthreads option was specified, or 0 otherwise. This is to get around
+        -:  369:   the lack of weak symbols in PE-COFF.  */
+        -:  370:extern int _CRT_MT;
+        -:  371:extern int __mingwthr_key_dtor (unsigned long, void (*) (void *));
+        -:  372:#endif /* __MINGW32__ version */
+        -:  373:
+        -:  374:/* The Windows95 kernel does not export InterlockedCompareExchange.
+        -:  375:   This provides a substitute.   When building apps that reference
+        -:  376:   gthread_mutex_try_lock, the  __GTHREAD_I486_INLINE_LOCK_PRIMITIVES
+        -:  377:   macro  must be defined if Windows95 is a target.  Currently
+        -:  378:   gthread_mutex_try_lock is not referenced by libgcc or libstdc++.  */
+        -:  379:#ifdef __GTHREAD_I486_INLINE_LOCK_PRIMITIVES
+        -:  380:static inline long
+        -:  381:__gthr_i486_lock_cmp_xchg(long *__dest, long __xchg, long __comperand)
+        -:  382:{
+        -:  383:  long result;
+        -:  384:  __asm__ __volatile__ ("\n\
+        -:  385:	lock\n\
+        -:  386:	cmpxchg{l} {%4, %1|%1, %4}\n"
+        -:  387:	: "=a" (result), "=m" (*__dest)
+        -:  388:	: "0" (__comperand), "m" (*__dest), "r" (__xchg)
+        -:  389:	: "cc");
+        -:  390:  return result;
+        -:  391:}
+        -:  392:#define __GTHR_W32_InterlockedCompareExchange __gthr_i486_lock_cmp_xchg
+        -:  393:#else  /* __GTHREAD_I486_INLINE_LOCK_PRIMITIVES */
+        -:  394:#define __GTHR_W32_InterlockedCompareExchange InterlockedCompareExchange
+        -:  395:#endif /* __GTHREAD_I486_INLINE_LOCK_PRIMITIVES */
+        -:  396:
+        -:  397:static inline int
+    #####:  398:__gthread_active_p (void)
+        -:  399:{
+        -:  400:#ifdef MINGW32_SUPPORTS_MT_EH
+    #####:  401:  return _CRT_MT;
+        -:  402:#else
+        -:  403:  return 1;
+        -:  404:#endif
+        -:  405:}
+        -:  406:
+        -:  407:#if __GTHREAD_HIDE_WIN32API
+        -:  408:
+        -:  409:/* The implementations are in config/i386/gthr-win32.c in libgcc.a.
+        -:  410:   Only stubs are exposed to avoid polluting the C++ namespace with
+        -:  411:   windows api definitions.  */
+        -:  412:
+        -:  413:extern int __gthr_win32_once (__gthread_once_t *, void (*) (void));
+        -:  414:extern int __gthr_win32_key_create (__gthread_key_t *, void (*) (void*));
+        -:  415:extern int __gthr_win32_key_delete (__gthread_key_t);
+        -:  416:extern void * __gthr_win32_getspecific (__gthread_key_t);
+        -:  417:extern int __gthr_win32_setspecific (__gthread_key_t, const void *);
+        -:  418:extern void __gthr_win32_mutex_init_function (__gthread_mutex_t *);
+        -:  419:extern int __gthr_win32_mutex_lock (__gthread_mutex_t *);
+        -:  420:extern int __gthr_win32_mutex_trylock (__gthread_mutex_t *);
+        -:  421:extern int __gthr_win32_mutex_unlock (__gthread_mutex_t *);
+        -:  422:extern void
+        -:  423:  __gthr_win32_recursive_mutex_init_function (__gthread_recursive_mutex_t *);
+        -:  424:extern int __gthr_win32_recursive_mutex_lock (__gthread_recursive_mutex_t *);
+        -:  425:extern int
+        -:  426:  __gthr_win32_recursive_mutex_trylock (__gthread_recursive_mutex_t *);
+        -:  427:extern int __gthr_win32_recursive_mutex_unlock (__gthread_recursive_mutex_t *);
+        -:  428:extern void __gthr_win32_mutex_destroy (__gthread_mutex_t *);
+        -:  429:
+        -:  430:static inline int
+        -:  431:__gthread_once (__gthread_once_t *__once, void (*__func) (void))
+        -:  432:{
+        -:  433:  if (__gthread_active_p ())
+        -:  434:    return __gthr_win32_once (__once, __func);
+        -:  435:  else
+        -:  436:    return -1;
+        -:  437:}
+        -:  438:
+        -:  439:static inline int
+        -:  440:__gthread_key_create (__gthread_key_t *__key, void (*__dtor) (void *))
+        -:  441:{
+        -:  442:  return __gthr_win32_key_create (__key, __dtor);
+        -:  443:}
+        -:  444:
+        -:  445:static inline int
+        -:  446:__gthread_key_delete (__gthread_key_t __key)
+        -:  447:{
+        -:  448:  return __gthr_win32_key_delete (__key);
+        -:  449:}
+        -:  450:
+        -:  451:static inline void *
+        -:  452:__gthread_getspecific (__gthread_key_t __key)
+        -:  453:{
+        -:  454:  return __gthr_win32_getspecific (__key);
+        -:  455:}
+        -:  456:
+        -:  457:static inline int
+        -:  458:__gthread_setspecific (__gthread_key_t __key, const void *__ptr)
+        -:  459:{
+        -:  460:  return __gthr_win32_setspecific (__key, __ptr);
+        -:  461:}
+        -:  462:
+        -:  463:static inline void
+        -:  464:__gthread_mutex_init_function (__gthread_mutex_t *__mutex)
+        -:  465:{
+        -:  466:  __gthr_win32_mutex_init_function (__mutex);
+        -:  467:}
+        -:  468:
+        -:  469:static inline void
+        -:  470:__gthread_mutex_destroy (__gthread_mutex_t *__mutex)
+        -:  471:{
+        -:  472:  __gthr_win32_mutex_destroy (__mutex);
+        -:  473:}
+        -:  474:
+        -:  475:static inline int
+        -:  476:__gthread_mutex_lock (__gthread_mutex_t *__mutex)
+        -:  477:{
+        -:  478:  if (__gthread_active_p ())
+        -:  479:    return __gthr_win32_mutex_lock (__mutex);
+        -:  480:  else
+        -:  481:    return 0;
+        -:  482:}
+        -:  483:
+        -:  484:static inline int
+        -:  485:__gthread_mutex_trylock (__gthread_mutex_t *__mutex)
+        -:  486:{
+        -:  487:  if (__gthread_active_p ())
+        -:  488:    return __gthr_win32_mutex_trylock (__mutex);
+        -:  489:  else
+        -:  490:    return 0;
+        -:  491:}
+        -:  492:
+        -:  493:static inline int
+        -:  494:__gthread_mutex_unlock (__gthread_mutex_t *__mutex)
+        -:  495:{
+        -:  496:  if (__gthread_active_p ())
+        -:  497:    return __gthr_win32_mutex_unlock (__mutex);
+        -:  498:  else
+        -:  499:    return 0;
+        -:  500:}
+        -:  501:
+        -:  502:static inline void
+        -:  503:__gthread_recursive_mutex_init_function (__gthread_recursive_mutex_t *__mutex)
+        -:  504:{
+        -:  505:   __gthr_win32_recursive_mutex_init_function (__mutex);
+        -:  506:}
+        -:  507:
+        -:  508:static inline int
+        -:  509:__gthread_recursive_mutex_lock (__gthread_recursive_mutex_t *__mutex)
+        -:  510:{
+        -:  511:  if (__gthread_active_p ())
+        -:  512:    return __gthr_win32_recursive_mutex_lock (__mutex);
+        -:  513:  else
+        -:  514:    return 0;
+        -:  515:}
+        -:  516:
+        -:  517:static inline int
+        -:  518:__gthread_recursive_mutex_trylock (__gthread_recursive_mutex_t *__mutex)
+        -:  519:{
+        -:  520:  if (__gthread_active_p ())
+        -:  521:    return __gthr_win32_recursive_mutex_trylock (__mutex);
+        -:  522:  else
+        -:  523:    return 0;
+        -:  524:}
+        -:  525:
+        -:  526:static inline int
+        -:  527:__gthread_recursive_mutex_unlock (__gthread_recursive_mutex_t *__mutex)
+        -:  528:{
+        -:  529:  if (__gthread_active_p ())
+        -:  530:    return __gthr_win32_recursive_mutex_unlock (__mutex);
+        -:  531:  else
+        -:  532:    return 0;
+        -:  533:}
+        -:  534:
+        -:  535:#else /* ! __GTHREAD_HIDE_WIN32API */
+        -:  536:
+        -:  537:#include <windows.h>
+        -:  538:#include <errno.h>
+        -:  539:
+        -:  540:static inline int
+        -:  541:__gthread_once (__gthread_once_t *__once, void (*__func) (void))
+        -:  542:{
+        -:  543:  if (! __gthread_active_p ())
+        -:  544:    return -1;
+        -:  545:  else if (__once == NULL || __func == NULL)
+        -:  546:    return EINVAL;
+        -:  547:
+        -:  548:  if (! __once->done)
+        -:  549:    {
+        -:  550:      if (InterlockedIncrement (&(__once->started)) == 0)
+        -:  551:	{
+        -:  552:	  (*__func) ();
+        -:  553:	  __once->done = TRUE;
+        -:  554:	}
+        -:  555:      else
+        -:  556:	{
+        -:  557:	  /* Another thread is currently executing the code, so wait for it
+        -:  558:	     to finish; yield the CPU in the meantime.  If performance
+        -:  559:	     does become an issue, the solution is to use an Event that
+        -:  560:	     we wait on here (and set above), but that implies a place to
+        -:  561:	     create the event before this routine is called.  */
+        -:  562:	  while (! __once->done)
+        -:  563:	    Sleep (0);
+        -:  564:	}
+        -:  565:    }
+        -:  566:
+        -:  567:  return 0;
+        -:  568:}
+        -:  569:
+        -:  570:/* Windows32 thread local keys don't support destructors; this leads to
+        -:  571:   leaks, especially in threaded applications making extensive use of
+        -:  572:   C++ EH. Mingw uses a thread-support DLL to work-around this problem.  */
+        -:  573:static inline int
+        -:  574:__gthread_key_create (__gthread_key_t *__key,
+        -:  575:		      void (*__dtor) (void *) __attribute__((unused)))
+        -:  576:{
+        -:  577:  int __status = 0;
+        -:  578:  DWORD __tls_index = TlsAlloc ();
+        -:  579:  if (__tls_index != 0xFFFFFFFF)
+        -:  580:    {
+        -:  581:      *__key = __tls_index;
+        -:  582:#ifdef MINGW32_SUPPORTS_MT_EH
+        -:  583:      /* Mingw runtime will run the dtors in reverse order for each thread
+        -:  584:         when the thread exits.  */
+        -:  585:      __status = __mingwthr_key_dtor (*__key, __dtor);
+        -:  586:#endif
+        -:  587:    }
+        -:  588:  else
+        -:  589:    __status = (int) GetLastError ();
+        -:  590:  return __status;
+        -:  591:}
+        -:  592:
+        -:  593:static inline int
+        -:  594:__gthread_key_delete (__gthread_key_t __key)
+        -:  595:{
+        -:  596:  return (TlsFree (__key) != 0) ? 0 : (int) GetLastError ();
+        -:  597:}
+        -:  598:
+        -:  599:static inline void *
+        -:  600:__gthread_getspecific (__gthread_key_t __key)
+        -:  601:{
+        -:  602:  DWORD __lasterror;
+        -:  603:  void *__ptr;
+        -:  604:
+        -:  605:  __lasterror = GetLastError ();
+        -:  606:
+        -:  607:  __ptr = TlsGetValue (__key);
+        -:  608:
+        -:  609:  SetLastError (__lasterror);
+        -:  610:
+        -:  611:  return __ptr;
+        -:  612:}
+        -:  613:
+        -:  614:static inline int
+        -:  615:__gthread_setspecific (__gthread_key_t __key, const void *__ptr)
+        -:  616:{
+        -:  617:  if (TlsSetValue (__key, CONST_CAST2(void *, const void *, __ptr)) != 0)
+        -:  618:    return 0;
+        -:  619:  else
+        -:  620:    return GetLastError ();
+        -:  621:}
+        -:  622:
+        -:  623:static inline void
+        -:  624:__gthread_mutex_init_function (__gthread_mutex_t *__mutex)
+        -:  625:{
+        -:  626:  __mutex->counter = -1;
+        -:  627:  __mutex->sema = CreateSemaphore (NULL, 0, 65535, NULL);
+        -:  628:}
+        -:  629:
+        -:  630:static inline void
+        -:  631:__gthread_mutex_destroy (__gthread_mutex_t *__mutex)
+        -:  632:{
+        -:  633:  CloseHandle ((HANDLE) __mutex->sema);
+        -:  634:}
+        -:  635:
+        -:  636:static inline int
+        -:  637:__gthread_mutex_lock (__gthread_mutex_t *__mutex)
+        -:  638:{
+        -:  639:  int __status = 0;
+        -:  640:
+        -:  641:  if (__gthread_active_p ())
+        -:  642:    {
+        -:  643:      if (InterlockedIncrement (&__mutex->counter) == 0 ||
+        -:  644:	  WaitForSingleObject (__mutex->sema, INFINITE) == WAIT_OBJECT_0)
+        -:  645:	__status = 0;
+        -:  646:      else
+        -:  647:	{
+        -:  648:	  /* WaitForSingleObject returns WAIT_FAILED, and we can only do
+        -:  649:	     some best-effort cleanup here.  */
+        -:  650:	  InterlockedDecrement (&__mutex->counter);
+        -:  651:	  __status = 1;
+        -:  652:	}
+        -:  653:    }
+        -:  654:  return __status;
+        -:  655:}
+        -:  656:
+        -:  657:static inline int
+        -:  658:__gthread_mutex_trylock (__gthread_mutex_t *__mutex)
+        -:  659:{
+        -:  660:  int __status = 0;
+        -:  661:
+        -:  662:  if (__gthread_active_p ())
+        -:  663:    {
+        -:  664:      if (__GTHR_W32_InterlockedCompareExchange (&__mutex->counter, 0, -1) < 0)
+        -:  665:	__status = 0;
+        -:  666:      else
+        -:  667:	__status = 1;
+        -:  668:    }
+        -:  669:  return __status;
+        -:  670:}
+        -:  671:
+        -:  672:static inline int
+        -:  673:__gthread_mutex_unlock (__gthread_mutex_t *__mutex)
+        -:  674:{
+        -:  675:  if (__gthread_active_p ())
+        -:  676:    {
+        -:  677:      if (InterlockedDecrement (&__mutex->counter) >= 0)
+        -:  678:	return ReleaseSemaphore (__mutex->sema, 1, NULL) ? 0 : 1;
+        -:  679:    }
+        -:  680:  return 0;
+        -:  681:}
+        -:  682:
+        -:  683:static inline void
+        -:  684:__gthread_recursive_mutex_init_function (__gthread_recursive_mutex_t *__mutex)
+        -:  685:{
+        -:  686:  __mutex->counter = -1;
+        -:  687:  __mutex->depth = 0;
+        -:  688:  __mutex->owner = 0;
+        -:  689:  __mutex->sema = CreateSemaphore (NULL, 0, 65535, NULL);
+        -:  690:}
+        -:  691:
+        -:  692:static inline int
+        -:  693:__gthread_recursive_mutex_lock (__gthread_recursive_mutex_t *__mutex)
+        -:  694:{
+        -:  695:  if (__gthread_active_p ())
+        -:  696:    {
+        -:  697:      DWORD __me = GetCurrentThreadId();
+        -:  698:      if (InterlockedIncrement (&__mutex->counter) == 0)
+        -:  699:	{
+        -:  700:	  __mutex->depth = 1;
+        -:  701:	  __mutex->owner = __me;
+        -:  702:	}
+        -:  703:      else if (__mutex->owner == __me)
+        -:  704:	{
+        -:  705:	  InterlockedDecrement (&__mutex->counter);
+        -:  706:	  ++(__mutex->depth);
+        -:  707:	}
+        -:  708:      else if (WaitForSingleObject (__mutex->sema, INFINITE) == WAIT_OBJECT_0)
+        -:  709:	{
+        -:  710:	  __mutex->depth = 1;
+        -:  711:	  __mutex->owner = __me;
+        -:  712:	}
+        -:  713:      else
+        -:  714:	{
+        -:  715:	  /* WaitForSingleObject returns WAIT_FAILED, and we can only do
+        -:  716:	     some best-effort cleanup here.  */
+        -:  717:	  InterlockedDecrement (&__mutex->counter);
+        -:  718:	  return 1;
+        -:  719:	}
+        -:  720:    }
+        -:  721:  return 0;
+        -:  722:}
+        -:  723:
+        -:  724:static inline int
+        -:  725:__gthread_recursive_mutex_trylock (__gthread_recursive_mutex_t *__mutex)
+        -:  726:{
+        -:  727:  if (__gthread_active_p ())
+        -:  728:    {
+        -:  729:      DWORD __me = GetCurrentThreadId();
+        -:  730:      if (__GTHR_W32_InterlockedCompareExchange (&__mutex->counter, 0, -1) < 0)
+        -:  731:	{
+        -:  732:	  __mutex->depth = 1;
+        -:  733:	  __mutex->owner = __me;
+        -:  734:	}
+        -:  735:      else if (__mutex->owner == __me)
+        -:  736:	++(__mutex->depth);
+        -:  737:      else
+        -:  738:	return 1;
+        -:  739:    }
+        -:  740:  return 0;
+        -:  741:}
+        -:  742:
+        -:  743:static inline int
+        -:  744:__gthread_recursive_mutex_unlock (__gthread_recursive_mutex_t *__mutex)
+        -:  745:{
+        -:  746:  if (__gthread_active_p ())
+        -:  747:    {
+        -:  748:      --(__mutex->depth);
+        -:  749:      if (__mutex->depth == 0)
+        -:  750:	{
+        -:  751:	  __mutex->owner = 0;
+        -:  752:
+        -:  753:	  if (InterlockedDecrement (&__mutex->counter) >= 0)
+        -:  754:	    return ReleaseSemaphore (__mutex->sema, 1, NULL) ? 0 : 1;
+        -:  755:	}
+        -:  756:    }
+        -:  757:  return 0;
+        -:  758:}
+        -:  759:
+        -:  760:#endif /*  __GTHREAD_HIDE_WIN32API */
+        -:  761:
+        -:  762:#ifdef __cplusplus
+        -:  763:}
+        -:  764:#endif
+        -:  765:
+        -:  766:#endif /* _LIBOBJC */
+        -:  767:
+        -:  768:#endif /* ! GCC_GTHR_WIN32_H */

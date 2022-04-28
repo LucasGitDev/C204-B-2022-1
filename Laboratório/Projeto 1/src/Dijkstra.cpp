@@ -56,12 +56,6 @@ return_dijkstra dijkstra(list<no> adj[], int nVertices, int start, int end)
             destino = p->v;
             weight = p->peso;
 
-            // if (distancia[destino] > weight && intree[destino] == false)
-            // {
-            //     distancia[destino] = weight;
-            //     parent[destino] = v;
-            // }
-
             if (distancia[destino] > distancia[v] + weight)
             {
                 distancia[destino] = distancia[v] + weight;
@@ -101,37 +95,3 @@ return_dijkstra dijkstra(list<no> adj[], int nVertices, int start, int end)
 
     return retorno;
 }
-
-// int main()
-// {
-
-//     list<no> adj[11];    // lista de adjacência
-//     int nVertices;        // número de vértices
-//     int u, v;             // origem e destino da aresta
-//     int p;                // peso da aresta
-//     int i;                // contador
-//     list<no>::iterator q; // iterador para percorrer lista de adjacência
-//     int orientado;        // grafo 1:orientado 0:não-orientado
-//     int inicial;
-//     int end;
-
-//     cin >> nVertices >> orientado >> inicial >> end;
-
-//     //Lendo e inserindo aresta
-//     cin >> u >> v >> p;
-//     while (u != -1 && v != -1 && p != -1)
-//     {
-//         cria_aresta(adj, u, v, p, orientado);
-//         cin >> u >> v >> p;
-//     }
-
-//     //Mostrando a lista de adjacência
-//     dijkstra(adj, nVertices, inicial, end);
-
-//     //limpar a memória
-//     for (i = 0; i < nVertices; i++)
-//     {
-//         adj[i].clear();
-//     }
-//     return 0;
-// }
